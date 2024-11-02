@@ -1,31 +1,46 @@
--- primary and foreign keys
-rename database hw4 to testing;
+/*  -- table fixing 
+select constraint_name 
+from information_schema.key_column_usage 
+where table_name = 'customer' 
+andcolumn_name = 'address_id';
 
+alter table staff
+modify address_id integer;
+*/
+
+-- primary and foreign keys
 alter table actor
 add primary key(actor_id);
 
 alter table address
 add primary key(address_id);
 
-alter table address  -- add this
+alter table address -- a
 add foreign key(city_id) references city(city_id);
 
 alter table category
 add primary key(category_id);
 
+alter table category
+add constraint category_constaint
+check (name in ('Animation', 'Comedy', 'Family', 'Foreign', 'Sci-Fi', 'Travel', 'Children', 'Drama', 'Horror', 'Action', 'Classics', 'Games', 'New', 'Documentary', 'Sports', 'Music'));
+
 alter table city
 add primary key(city_id);
 
-alter table city
+alter table city -- a
 add foreign key(country_id) references country(country_id);
+
+alter table country
+add primary key(country_id);
 
 alter table customer
 add primary key(customer_id);
 
-alter table customer  -- add this
+alter table customer  -- a
 add foreign key(store_id) references store(store_id); 
 
-alter table customer
+alter table customer  -- a
 add foreign key(address_id) references address(address_id);
 
 alter table film
@@ -33,6 +48,10 @@ add primary key(film_id);
 
 alter table film
 add foreign key(language_id) references language(language_id);
+
+alter table film  -- fix this
+add constraint special_features_constaint
+check (name in ('Behind the Scenes', 'Commentaries', 'Deleted Scenes', 'Trailers'));
 
 alter table film_actor
 add foreign key (actor_id) references actor(actor_id);
@@ -52,7 +71,7 @@ add primary key(inventory_id);
 alter table inventory
 add foreign key(film_id) references film(film_id);
 
-alter table inventory -- add this when store is added
+alter table inventory
 add foreign key(store_id) references store(store_id);
 
 alter table language
@@ -73,10 +92,10 @@ add foreign key(rental_id) references rental(rental_id);
 alter table rental
 add primary key(rental_id);
 -- ask about unique keys in here below
-alter table rental  -- add once disclosed
+alter table rental
 add foreign key(inventory_id) references inventory(inventory_id);
 
-alter table rental  -- add
+alter table rental
 add foreign key(customer_id) references customer(customer_id);
 
 alter table rental
@@ -85,34 +104,20 @@ add foreign key(staff_id) references staff(staff_id);
 alter table staff
 add primary key(staff_id);
 
-alter table staff  -- add this
+alter table staff
 add foreign key(address_id) references address(address_id);
 
 alter table staff
-modify address_id integer;
-
-alter table staff  -- add this
 add foreign key(store_id) references store(store_id);
 
 alter table store
 add primary key(store_id);
 
-alter table store  -- isues with this
+alter table store
 add foreign key(address_id) references address(address_id);
 
 select store.address_id
 from store;
-
-select address.address_id
-from address
-where address.address_id = '10';
-
-
-SELECT address_id 
-FROM store
-WHERE address_id NOT IN (SELECT address_id FROM address);
--- address is wack, fix it
--- add constraints
 
 -- Query 1: What is the average length of films in each category? List the results in alphabetic order of categories.
 select category.name, avg(film.length) as avg_film_length  -- get average of each film from each category
@@ -141,7 +146,7 @@ from CategoryGroups
 where film_length = (select min(film_length) from categorygroups);  -- set the film_length to be the max length from the subtable
 
 -- Query 3: Which customers have rented action but not comedy or classic movies?
-select count(distinct customer.customer_id) as count
+select customer.customer_id, customer.first_name,customer.last_name
 from rental
 inner join customer on rental.customer_id = customer.customer_id
 inner join inventory on rental.inventory_id = inventory.inventory_id
@@ -150,7 +155,7 @@ inner join film_category on film.film_id = film_category.film_id
 inner join category on film_category.category_id = category.category_id
 where category.name = 'action'
 except
-select count(distinct customer.customer_id)
+select customer.customer_id, customer.first_name,customer.last_name
 from rental
 inner join customer on rental.customer_id = customer.customer_id
 inner join inventory on rental.inventory_id = inventory.inventory_id
@@ -178,8 +183,48 @@ having (starred_in) >= all  -- filter each group to get most starred actor
     group by actor.actor_id);
 
 -- Query 5: How many distinct movies were rented for exactly 10 days from the store where Mike works?
-select staff.staff_id,staff.first_name
+/* -- sanity check
+select count(distinct film.title), staff.staff_id,staff.first_name
 from address
-inner join staff on address.address_id = staff.address_id;
+inner join staff on address.address_id = staff.address_id
+inner join store on staff.store_id = store.store_id
+inner join inventory on store.store_id = inventory.store_id
+inner join rental on inventory.inventory_id = rental.inventory_id
+inner join film on inventory.film_id = film.film_id
+group by staff.staff_id,staff.first_name;
+*/
+
+select count(distinct film.film_id) as films  -- get a count of distinct films from whom they were rented from
+from address
+inner join staff on address.address_id = staff.address_id
+inner join store on staff.store_id = store.store_id
+inner join inventory on store.store_id = inventory.store_id
+inner join rental on inventory.inventory_id = rental.inventory_id
+inner join film on inventory.film_id = film.film_id  -- join tables
+where datediff(return_date,rental_date) = 10 and staff.staff_id = 1;  -- get the difference in days that is equal to 10 days and staff member is Mike
+
+-- Query 6: Alphabetically list actors who appeared in the movie with the largest cast of actors.
+with ActorCast as  -- create a subtable of the count of each actor in each film
+(select film.title as title,count(distinct actor.actor_id) as cast_size
+from film_actor
+inner join actor on film_actor.actor_id = actor.actor_id
+inner join film on film_actor.film_id = film.film_id  -- join tables
+group by film.title),  -- sort by films
+
+ActorList as  -- use this subtable to find the film with the most actors
+(select ActorCast.title,cast_size
+from ActorCast
+where cast_size = (select max(cast_size) from ActorCast))  -- filters out row to get film with most actor
+
+select actor.first_name,actor.last_name  -- select names of each actor in film
+from ActorList
+inner join film on ActorList.title = film.title
+inner join film_actor on film.film_id = film_actor.film_id
+inner join actor on film_actor.actor_id = actor.actor_id -- join the ActorList table with the film, film_actor, and actor to bring info about each actor in the film
+order by actor.last_name;  -- sort alphabetically by last name
+
+
+
+
 
 
