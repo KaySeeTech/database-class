@@ -28,7 +28,7 @@ check (name in ('Animation', 'Comedy', 'Family', 'Foreign', 'Sci-Fi', 'Travel', 
 alter table city
 add primary key(city_id);
 
-alter table city -- a
+alter table cityinventory
 add foreign key(country_id) references country(country_id);
 
 alter table country
@@ -37,11 +37,15 @@ add primary key(country_id);
 alter table customer
 add primary key(customer_id);
 
-alter table customer  -- a
+alter table customer
 add foreign key(store_id) references store(store_id); 
 
-alter table customer  -- a
+alter table customer
 add foreign key(address_id) references address(address_id);
+
+alter table customer
+add constraint active_constraint 
+check (active in (0, 1));
 
 alter table film
 add primary key(film_id);
@@ -49,9 +53,25 @@ add primary key(film_id);
 alter table film
 add foreign key(language_id) references language(language_id);
 
-alter table film  -- fix this
+alter table film 
 add constraint special_features_constaint
-check (name in ('Behind the Scenes', 'Commentaries', 'Deleted Scenes', 'Trailers'));
+check (special_features in ('Behind the Scenes', 'Commentaries', 'Deleted Scenes', 'Trailers'));
+
+alter table film
+add constraint rental_rate_constraint
+check (rental_rate between 0.99 and 6.99);
+
+alter table film
+add constraint film_length_constraint
+check (length between 30 and 200);
+
+alter table film 
+add constraint rating_constraint
+check (rating in ('PG', 'G', 'NC-17', 'PG-13', 'R'));
+
+alter table film
+add constraint replacement_cost_constraint
+check (replacement_cost between 5.00 and 100.00);
 
 alter table film_actor
 add foreign key (actor_id) references actor(actor_id);
@@ -89,6 +109,10 @@ add foreign key(staff_id) references staff(staff_id);
 alter table payment  -- add this
 add foreign key(rental_id) references rental(rental_id);
 
+alter table payment
+add constraint amount_constraint
+check (amount >= 0);
+
 alter table rental
 add primary key(rental_id);
 -- ask about unique keys in here below
@@ -101,6 +125,15 @@ add foreign key(customer_id) references customer(customer_id);
 alter table rental
 add foreign key(staff_id) references staff(staff_id);
 
+alter table rental -- ????
+add constraint rental_date_unique unique (rental_date);
+
+alter table rental -- ????
+add constraint customer_id_unique unique (customer_id);
+
+alter table rental -- ????
+add constraint rental_date_unique unique (rental_date);
+
 alter table staff
 add primary key(staff_id);
 
@@ -109,6 +142,10 @@ add foreign key(address_id) references address(address_id);
 
 alter table staff
 add foreign key(store_id) references store(store_id);
+
+alter table staff
+add constraint staff_active_constraint 
+check (active in (0, 1));
 
 alter table store
 add primary key(store_id);
