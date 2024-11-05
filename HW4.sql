@@ -115,7 +115,7 @@ check (amount >= 0);
 
 alter table rental
 add primary key(rental_id);
--- ask about unique keys in here below
+
 alter table rental
 add foreign key(inventory_id) references inventory(inventory_id);
 
@@ -124,7 +124,7 @@ add foreign key(customer_id) references customer(customer_id);
 
 alter table rental
 add foreign key(staff_id) references staff(staff_id);
-
+/*
 alter table rental -- ????
 add constraint rental_date_unique unique (rental_date);
 
@@ -133,6 +133,7 @@ add constraint customer_id_unique unique (customer_id);
 
 alter table rental -- ????
 add constraint rental_date_unique unique (rental_date);
+*/
 
 alter table staff
 add primary key(staff_id);
